@@ -53,13 +53,16 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 
 	existingPPRE := rootCmd.PersistentPreRunE
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if existingPPRE != nil {
-			if err := existingPPRE(cmd, args); err != nil {
-				return err
-			}
+		err := initializeConfig(cmd)
+		if err != nil {
+			return fmt.Errorf("unable to initialize config: %v", err)
 		}
 
-		return initializeConfig(cmd)
+		if existingPPRE != nil {
+			return existingPPRE(cmd, args)
+		} else {
+			return nil
+		}
 	}
 
 	var err error
@@ -86,11 +89,16 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 			if cmd.PersistentPreRunE != nil {
 				cmdPPRE := cmd.PersistentPreRunE
 				cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-					if err = cmdPPRE(cmd, args); err != nil {
-						return err
+					err = initializeConfig(cmd)
+					if err != nil {
+						return fmt.Errorf("unable to initialize config: %v", err)
 					}
 
-					return initializeConfig(cmd)
+					if cmdPPRE != nil {
+						return cmdPPRE(cmd, args)
+					} else {
+						return nil
+					}
 				}
 			}
 
