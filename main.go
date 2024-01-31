@@ -1,4 +1,4 @@
-package cobra_starter
+package cobrastarter
 
 import (
 	"github.com/hfoxy/cobra-starter/cmd"
