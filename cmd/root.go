@@ -24,12 +24,15 @@ var (
 	configReplaceHyphenWithCamelCase = false
 )
 
+var configParams []string
+
 type CommandConfig struct {
 	BaseCommand                *cobra.Command
 	ConfigFileName             string
 	EnvPrefix                  string
 	ReplaceHyphenWithCamelCase bool
 	DisableDefaultFlags        bool
+	DisableConfigFlags         bool
 	RootFlags                  RootFlags
 	Commands                   []CommandAdder
 	AdditionalConfigs          []string
@@ -74,6 +77,13 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 	var err error
 	if !config.DisableDefaultFlags {
 		err = addRootFlags(rootCmd)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !config.DisableConfigFlags {
+		err = addConfigFlags(rootCmd)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +134,16 @@ func addRootFlags(cmd *cobra.Command) error {
 	return nil
 }
 
+func addConfigFlags(cmd *cobra.Command) error {
+	cmd.PersistentFlags().StringSliceVar(&configParams, "configs", []string{}, "Additional config files to load")
+	return nil
+}
+
 func initializeConfig(cmd *cobra.Command, configs ...string) error {
+	if configParams != nil && len(configParams) > 0 {
+		configs = append(configs, configParams...)
+	}
+
 	notifyFunc := func(v fsnotify.Event) {}
 	return initializeWatchConfig(cmd, notifyFunc, configs...)
 }
