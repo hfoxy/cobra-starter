@@ -32,6 +32,7 @@ type CommandConfig struct {
 	DisableDefaultFlags        bool
 	RootFlags                  RootFlags
 	Commands                   []CommandAdder
+	AdditionalConfigs          []string
 }
 
 type RootFlags func(rootCmd *cobra.Command) error
@@ -51,9 +52,14 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 		rootCmd = config.BaseCommand
 	}
 
+	configs := config.AdditionalConfigs
+	if configs == nil {
+		configs = []string{}
+	}
+
 	existingPPRE := rootCmd.PersistentPreRunE
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		err := initializeConfig(cmd)
+		err := initializeConfig(cmd, configs...)
 		if err != nil {
 			return fmt.Errorf("unable to initialize config: %v", err)
 		}
@@ -89,7 +95,7 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 			if cmd.PersistentPreRunE != nil {
 				cmdPPRE := cmd.PersistentPreRunE
 				cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-					err = initializeConfig(cmd)
+					err = initializeConfig(cmd, configs...)
 					if err != nil {
 						return fmt.Errorf("unable to initialize config: %v", err)
 					}
