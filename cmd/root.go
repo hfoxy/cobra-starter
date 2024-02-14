@@ -202,10 +202,19 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			configName = strings.ReplaceAll(f.Name, "-", "")
 		}
 
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if !f.Changed && v.IsSet(configName) {
-			val := v.Get(configName)
-			cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+		// ensure keys like postgres.host are converted to postgres-host
+		for {
+			// Apply the viper config value to the flag when the flag is not set and viper has a value
+			if !f.Changed && v.IsSet(configName) {
+				val := v.Get(configName)
+				cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+			}
+
+			if strings.Contains(configName, "-") {
+				configName = strings.Replace(configName, "-", ".", 1)
+			} else {
+				break
+			}
 		}
 	})
 }
