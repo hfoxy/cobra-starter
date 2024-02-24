@@ -117,7 +117,10 @@ func Logger() *slog.Logger {
 
 func LoggerHandlers() []slog.Handler {
 	copied := make([]slog.Handler, len(rootLoggerHandlers))
-	copy(rootLoggerHandlers, copied)
+	for i, h := range rootLoggerHandlers {
+		copied[i] = h
+	}
+
 	return copied
 }
 
