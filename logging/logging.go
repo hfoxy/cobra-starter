@@ -15,10 +15,21 @@ import (
 var LogFormat = "text"
 var LogOutputs = "stdout"
 
+var rootLoggerHandlers = make([]slog.Handler, 0)
 var rootLogger *slog.Logger
 var AddSource = false
 
-func Init() {
+var withVersion = true
+var withEnvironment = true
+var fields = make(map[string]interface{})
+
+func Init(opts ...Option) {
+	withVersion = true
+	withEnvironment = true
+	for _, opt := range opts {
+		opt()
+	}
+
 	level := slog.LevelInfo
 	if flags.DebugEnabled {
 		level = slog.LevelDebug
@@ -74,11 +85,56 @@ func Init() {
 		handlers = append(handlers, handler)
 	}
 
-	rootLogger = slog.New(slogmulti.Fanout(handlers...)).With("version", version.Version).With("environment", version.Environment)
+	rootLoggerHandlers = handlers
+	rootLogger = cleanLogger()
+}
+
+func cleanLogger() *slog.Logger {
+	l := slog.New(slogmulti.Fanout(rootLoggerHandlers...))
+	if withVersion {
+		l = l.With("version", version.Version)
+	}
+
+	if withEnvironment {
+		l = l.With("environment", version.Environment)
+	}
+
+	return l
+}
+
+func fieldedLogger() *slog.Logger {
+	l := cleanLogger()
+	for k, v := range fields {
+		l = l.With(k, v)
+	}
+
+	return l
 }
 
 func Logger() *slog.Logger {
 	return rootLogger
+}
+
+func LoggerHandlers() []slog.Handler {
+	copied := make([]slog.Handler, len(rootLoggerHandlers))
+	copy(rootLoggerHandlers, copied)
+	return copied
+}
+
+func AddField(key string, value interface{}) {
+	l := rootLogger
+	if _, ok := fields[key]; ok {
+		delete(fields, key)
+		l = fieldedLogger()
+	}
+
+	rootLogger = l.With(key, value)
+	fields[key] = value
+}
+
+func RemoveField(key string) {
+	delete(fields, key)
+	rootLogger = fieldedLogger()
 }
 
 type stackTraceHandler struct {
