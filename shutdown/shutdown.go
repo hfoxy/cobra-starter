@@ -11,6 +11,16 @@ import (
 	"syscall"
 )
 
+var nonBlockingPriorityHooks = false
+
+func WithNonBlockingPriorityHooks() {
+	nonBlockingPriorityHooks = true
+}
+
+func WithoutNonBlockingPriorityHooks() {
+	nonBlockingPriorityHooks = false
+}
+
 var sendSignal = true
 var hooks = make(Hooks, 0)
 
@@ -102,16 +112,52 @@ func Shutdown() {
 
 	sort.Sort(hooks)
 
+	priorities := make([]int64, 0, len(hooks))
+	hookPriorityMap := make(map[int64][]*hook)
+
 	for _, h := range hooks {
-		if h.complete {
-			continue
+		if _, ok := hookPriorityMap[h.priority]; !ok {
+			priorities = append(priorities, h.priority)
+			hookPriorityMap[h.priority] = make([]*hook, 0, len(hooks))
 		}
 
-		err := h.fn()
-		if err != nil {
-			logging.Logger().Error("Error running shutdown hook", "error", err)
-		}
-
-		h.complete = true
+		hookPriorityMap[h.priority] = append(hookPriorityMap[h.priority], h)
 	}
+
+	for _, priority := range priorities {
+		priorityHooks := hookPriorityMap[priority]
+
+		if nonBlockingPriorityHooks {
+			wg := new(sync.WaitGroup)
+
+			for _, h := range priorityHooks {
+				wg.Add(1)
+				go func(h *hook) {
+					runHook(h)
+					wg.Done()
+				}(h)
+			}
+
+			wg.Wait()
+		} else {
+			for _, h := range priorityHooks {
+				runHook(h)
+			}
+		}
+	}
+}
+
+func runHook(h *hook) {
+	if h.complete {
+		return
+	}
+
+	logging.Logger().Info("running shutdown hook", "id", h.id, "priority", h.priority)
+
+	err := h.fn()
+	if err != nil {
+		logging.Logger().Error("error running shutdown hook", "error", err)
+	}
+
+	h.complete = true
 }
