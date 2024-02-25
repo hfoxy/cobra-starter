@@ -152,8 +152,6 @@ func runHook(h *hook) {
 		return
 	}
 
-	logging.Logger().Info("running shutdown hook", "id", h.id, "priority", h.priority)
-
 	err := h.fn()
 	if err != nil {
 		logging.Logger().Error("error running shutdown hook", "error", err)
