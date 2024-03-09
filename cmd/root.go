@@ -102,19 +102,17 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 				return nil, err
 			}
 
-			if cmd.PersistentPreRunE != nil {
-				cmdPPRE := cmd.PersistentPreRunE
-				cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-					err = initializeConfig(cmd, configs...)
-					if err != nil {
-						return fmt.Errorf("unable to initialize config: %v", err)
-					}
+			cmdPPRE := cmd.PersistentPreRunE
+			cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+				err = initializeConfig(cmd, configs...)
+				if err != nil {
+					return fmt.Errorf("unable to initialize config: %v", err)
+				}
 
-					if cmdPPRE != nil {
-						return cmdPPRE(cmd, args)
-					} else {
-						return nil
-					}
+				if cmdPPRE != nil {
+					return cmdPPRE(cmd, args)
+				} else {
+					return nil
 				}
 			}
 
