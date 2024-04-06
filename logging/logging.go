@@ -22,6 +22,7 @@ var AddSource = false
 var withVersion = true
 var withEnvironment = true
 var fields = make(map[string]interface{})
+var StdOutHandlerOverride slog.Handler
 
 func Init(opts ...Option) {
 	withVersion = true
@@ -61,6 +62,9 @@ func Init(opts ...Option) {
 		switch output {
 		case "stdout":
 			writer = os.Stdout
+			if StdOutHandlerOverride != nil {
+				handler = StdOutHandlerOverride
+			}
 		case "file":
 			logger := &lumberjack.Logger{
 				Filename:   "app.log",
