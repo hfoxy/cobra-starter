@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var LogFormat = "text"
+var LogFormat = "json"
 var LogOutputs = "stdout"
 
 var rootLoggerHandlers = make([]slog.Handler, 0)

@@ -127,8 +127,8 @@ func addRootFlags(cmd *cobra.Command) error {
 	// Define cobra flags, the default value has the lowest (least significant) precedence
 
 	cmd.PersistentFlags().BoolVarP(&flags.DebugEnabled, "debug", "d", flags.DebugEnabled, "Enable debug logging")
-	cmd.PersistentFlags().StringVarP(&logging.LogFormat, "log-format", "f", "json", "Default log format (text, json)")
-	cmd.PersistentFlags().StringVarP(&logging.LogOutputs, "log-outputs", "o", "stdout", "Comma separated list of log outputs (stdout,file). Can specify format for each output (stdout:text,file:json) (stdout, file)")
+	cmd.PersistentFlags().StringVarP(&logging.LogFormat, "log-format", "f", logging.LogFormat, "Default log format (text, json)")
+	cmd.PersistentFlags().StringVarP(&logging.LogOutputs, "log-outputs", "o", logging.LogOutputs, "Comma separated list of log outputs (stdout,file). Can specify format for each output (stdout:text,file:json) (stdout, file)")
 	return nil
 }
 
