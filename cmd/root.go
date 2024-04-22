@@ -7,6 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/hfoxy/cobra-starter/flags"
 	"github.com/hfoxy/cobra-starter/logging"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -36,6 +37,7 @@ type CommandConfig struct {
 	RootFlags                  RootFlags
 	Commands                   []CommandAdder
 	AdditionalConfigs          []string
+	UseLogger                  bool
 }
 
 type RootFlags func(rootCmd *cobra.Command) error
@@ -62,7 +64,7 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 
 	existingPPRE := rootCmd.PersistentPreRunE
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		err := initializeConfig(cmd, configs...)
+		err := initializeConfig(config, cmd, configs...)
 		if err != nil {
 			return fmt.Errorf("unable to initialize config: %v", err)
 		}
@@ -104,7 +106,7 @@ func NewRootCommand(config CommandConfig) (*cobra.Command, error) {
 
 			cmdPPRE := cmd.PersistentPreRunE
 			cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-				err = initializeConfig(cmd, configs...)
+				err = initializeConfig(config, cmd, configs...)
 				if err != nil {
 					return fmt.Errorf("unable to initialize config: %v", err)
 				}
@@ -137,16 +139,16 @@ func addConfigFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-func initializeConfig(cmd *cobra.Command, configs ...string) error {
+func initializeConfig(config CommandConfig, cmd *cobra.Command, configs ...string) error {
 	if configParams != nil && len(configParams) > 0 {
 		configs = append(configs, configParams...)
 	}
 
 	notifyFunc := func(v fsnotify.Event) {}
-	return initializeWatchConfig(cmd, notifyFunc, configs...)
+	return initializeWatchConfig(config, cmd, notifyFunc, configs...)
 }
 
-func initializeWatchConfig(cmd *cobra.Command, onChange func(event fsnotify.Event), configs ...string) error {
+func initializeWatchConfig(c CommandConfig, cmd *cobra.Command, onChange func(event fsnotify.Event), configs ...string) error {
 	if err := initSpecificConfig(cmd, onChange, configDefaultConfigFilename); err != nil {
 		return fmt.Errorf("unable to load config '%s': %v", configDefaultConfigFilename, err)
 	}
@@ -158,6 +160,12 @@ func initializeWatchConfig(cmd *cobra.Command, onChange func(event fsnotify.Even
 	}
 
 	logging.Init()
+
+	if c.UseLogger {
+		cmd.SetOut(NewLoggerWriter(logging.Logger(), slog.LevelInfo))
+		cmd.SetErr(NewLoggerWriter(logging.Logger(), slog.LevelError))
+	}
+
 	return nil
 }
 
